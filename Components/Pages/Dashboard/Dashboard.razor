@@ -1,0 +1,46 @@
+﻿<RadzenCard>
+    <ChildContent>
+        <RadzenStack AlignItems="AlignItems.Start" Orientation="Orientation.Horizontal">
+            <RadzenText TextStyle="TextStyle.DisplayH4">Welcome to BillFlow @name!</RadzenText>
+        </RadzenStack>
+
+        <div class="row">
+            <div class="col-md-6">
+                <RadzenCard class="dashboard-card">
+                    <ChildContent>
+                        <h3>Pay Bills</h3>
+                    </ChildContent>
+                </RadzenCard>
+            </div>
+            <div class="col-md-6">
+                <RadzenCard class="dashboard-card">
+                    <ChildContent>
+                        <h3>Manage Bills</h3>
+                    </ChildContent>
+                </RadzenCard>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <RadzenCard class="dashboard-card">
+                    <ChildContent>
+                        <h3>Income Sources</h3>
+                    </ChildContent>
+                </RadzenCard>
+            </div>
+            <div class="col-md-6">
+                <RadzenCard class="dashboard-card">
+                    <ChildContent>
+                        <h3>Reports</h3>
+                    </ChildContent>
+                </RadzenCard>
+            </div>
+        </div>
+    </ChildContent>
+</RadzenCard>
+
+@code {
+    protected string name = String.Empty;
+
+}
