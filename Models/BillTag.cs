@@ -1,10 +1,10 @@
 ﻿namespace BillFlow.Models
 {
-    public class BillType
+    public class BillTag
     {
-        public BillType(){}
+        public BillTag(){}
 
-        public BillType(string name, string? description = null)
+        public BillTag(string name, string? description = null)
         {
             Name = name;
             Description = description;
