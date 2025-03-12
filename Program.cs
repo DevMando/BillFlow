@@ -5,10 +5,6 @@ using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
 // Radzen Components.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

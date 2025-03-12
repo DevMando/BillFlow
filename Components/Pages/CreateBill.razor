@@ -1,12 +1,60 @@
-﻿
+﻿@page "/create-bill"
+@inject BillFlowContext BillFlowContext
+@rendermode InteractiveServer
+@using Radzen
+@using Radzen.Blazor
 
 
-<h3>CreateBill</h3>
+<PageTitle>BillFlow - Create Bill</PageTitle>
 
+<RadzenText style="margin-top: 20px" Text="Create Bill" Size="H2" />
+
+<RadzenFieldset>
+	<RadzenStack>
+
+		<RadzenLabel Text="Bill Name" />
+		<RadzenTextBox @bind-Value="@bill.Name" Name="Name" />
+
+		<RadzenLabel Text="Amount Due" />
+		<RadzenNumeric @bind-Value="@bill.AmountDue" Name="Amount Due" />
+	</RadzenStack>
+	
+
+	
+	<RadzenLabel Text="Is Monthly Bill" />
+	<RadzenCheckBox @bind-Value="@bill.IsMonthy" Name="MonthlyBill" />
+	
+
+	<RadzenLabel Text="Bill Due Date" />
+	<RadzenDatePicker @bind-Value="@bill.DueDate" Name="DueDate" />
+
+	<RadzenButton Text="Add Bill"  Click="AddBill" />
+</RadzenFieldset>
+
+<RadzenSplitter></RadzenSplitter>
+<RadzenText></RadzenText>
+<RadzenDataGrid Data="Bills">
+
+</RadzenDataGrid>
 
 
 @code {
 
 	protected List<Bill> Bills = new List<Bill>();
+	protected Bill bill = new Bill();
+
+	protected override Task OnInitializedAsync()
+	{
+		Bills = BillFlowContext.Bills.ToList();
+		return base.OnInitializedAsync();
+	}
+
+	protected async Task AddBill()
+	{
+		BillFlowContext.Bills.Add(bill);
+		await BillFlowContext.SaveChangesAsync();
+		await BillFlowContext.Bills.ToListAsync();
+		bill = new Bill();
+	}
 
 }
