@@ -1,0 +1,53 @@
+﻿@page "/manage-bills"
+@using BillFlow.Models;
+@using BillFlow.Components.Pages;
+@using Radzen
+@using Radzen.Blazor
+@rendermode InteractiveServer
+@inject BillFlowContext BillFlowContext
+@inject DialogService _DialogService
+
+<RadzenText>Manage Bills</RadzenText>
+<RadzenButton Click="CreateBill">Create New Bill</RadzenButton>
+
+<RadzenSplitter />
+
+
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+				Data="@Bills" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
+	<Columns>
+		<RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="160px" />
+		<RadzenDataGridColumn Property="@nameof(Bill.IsMonthy)" Title="Is Monthly Bill" Width="160px">
+			<Template Context="bill">
+				@if (bill.IsMonthy)
+				{
+					<span>Yes</span>
+				}
+				else
+				{
+					<span>No</span>
+				}
+			</Template>
+		</RadzenDataGridColumn>
+		<RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="160px" />
+		<RadzenDataGridColumn Property="@nameof(Bill.AmountDue)" Title="Amount Due" Width="200px" />
+		<RadzenDataGridColumn Property="@nameof(Bill.Balance)" Title="Balance" Width="200px" />
+	</Columns>
+</RadzenDataGrid>
+
+@code {
+
+	protected List<Bill> Bills = new List<Bill>();
+	protected bool IsLoading { get; set; } = false;
+
+	protected override async Task OnInitializedAsync()
+	{
+		IsLoading = true;
+		await Task.Yield();
+		Bills = await BillFlowContext.Bills.ToListAsync();
+		IsLoading = false;
+	}
+
+	protected async Task CreateBill() => await _DialogService.OpenAsync<CreateBill>("Create Bill");
+
+}
