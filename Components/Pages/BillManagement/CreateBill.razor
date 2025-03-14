@@ -62,7 +62,7 @@
 		await BillFlowContext.SaveChangesAsync();
 
 		IsSaving = false;
-		DialogService.Close();
+		DialogService.Close(true);
 	}
 
 	protected bool ValidateNewBill()

@@ -28,7 +28,7 @@
     <Columns>
         <RadzenDataGridColumn>
             <Template Context="bill">
-                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))"  />
+                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))" />
                 <RadzenButton Icon="cancel" Style="border-radius:50%" ButtonStyle="ButtonStyle.Danger" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
             </Template>
         </RadzenDataGridColumn>
@@ -66,11 +66,15 @@
 
     protected async Task CreateBill()
     {
-        await _DialogService.OpenAsync<CreateBill>("Create Bill");
-        
-        IsLoading = true;
-        Bills = await BillFlowContext.Bills.ToListAsync();
-        IsLoading = false;
+        bool createdNewBill = await _DialogService.OpenAsync<CreateBill>("Create Bill");
+
+        if (createdNewBill)
+        {
+            IsLoading = true;
+            Bills = await BillFlowContext.Bills.ToListAsync();
+            IsLoading = false;
+        }
+
     }
 
     protected async Task EditBill()
