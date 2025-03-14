@@ -7,14 +7,13 @@
 @rendermode InteractiveServer
 @inject BillFlowContext BillFlowContext
 @inject DialogService _DialogService
+@inject TooltipService tooltipService
 
 <RadzenText>Manage Bills</RadzenText>
 
 <RadzenCard>
     <RadzenStack Orientation="Orientation.Horizontal">
         <RadzenButton Click="CreateBill">New Bill</RadzenButton>
-        <RadzenButton Icon="edit">Edit Bill</RadzenButton>
-        <RadzenButton Icon="delete_forver">Delete Bill</RadzenButton>
     </RadzenStack>
 </RadzenCard>
 
@@ -26,6 +25,12 @@
                 AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
                 Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
     <Columns>
+        <RadzenDataGridColumn>
+            <Template Context="bill">
+                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info"  />
+                <RadzenButton Icon="delete_forver" Style="border-radius:50%" ButtonStyle="ButtonStyle.Primary" />
+            </Template>
+        </RadzenDataGridColumn>
         <RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
         <RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="420px" />
         <RadzenDataGridColumn Property="@nameof(Bill.IsMonthy)" Title="Is Monthly Bill" Width="160px">
