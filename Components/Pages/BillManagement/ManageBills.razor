@@ -23,13 +23,13 @@
 
 
 <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="true" FilterMode="FilterMode.Advanced" AllowRowSelectOnRowClick="true"
-                AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
+AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
     <Columns>
         <RadzenDataGridColumn>
             <Template Context="bill">
-                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))" />
-                <RadzenButton Icon="cancel" Style="border-radius:50%" ButtonStyle="ButtonStyle.Danger" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
+                <RadzenButton Click="() => EditBill(bill)" Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))" />
+                <RadzenButton Click="() => DeleteBill(bill)" Icon="cancel" Style="border-radius:50%" ButtonStyle="ButtonStyle.Danger" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
@@ -74,14 +74,16 @@
             Bills = await BillFlowContext.Bills.ToListAsync();
             IsLoading = false;
         }
-
     }
 
-    protected async Task EditBill()
+    protected async Task EditBill(Bill bill)
     {
         IsLoading = true;
+        Dictionary<string, object> paramsDictionary = new Dictionary<string, object>() { { "Bill", bill} };
+        
         await _DialogService.OpenAsync<CreateBill>("Create Bill");
         Bills = await BillFlowContext.Bills.ToListAsync();
+        
         IsLoading = false;
     }
 

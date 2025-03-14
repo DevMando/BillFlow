@@ -8,36 +8,36 @@
 <RadzenRow>
 	<RadzenColumn Size="12">
 		<RadzenLabel Text="Bill Name" />
-		<RadzenTextBox @bind-Value="@bill.Name" Name="Name" Style="width:100%" />
+		<RadzenTextBox @bind-Value="@Bill.Name" Name="Name" Style="width:100%" />
 	</RadzenColumn>
 	<RadzenColumn Size="12">
 		<RadzenLabel Text="Description" />
-		<RadzenTextBox @bind-Value="@bill.Description" Name="Description" Style="width:100%" />
+		<RadzenTextBox @bind-Value="@Bill.Description" Name="Description" Style="width:100%" />
 	</RadzenColumn>
 </RadzenRow>
 
 <RadzenRow style="margin-top:10px">
 	<RadzenColumn Size="12">
 		<RadzenLabel Text="Monthly Bill" />
-		<RadzenCheckBox @bind-Value="@bill.IsMonthy" Name="MonthlyBill" />
+		<RadzenCheckBox @bind-Value="@Bill.IsMonthy" Name="MonthlyBill" />
 	</RadzenColumn>
 </RadzenRow>
 
 <RadzenRow style="margin-top:10px">
 	<RadzenColumn Size="6">
 		<RadzenLabel Text="Amount Due" />
-		<RadzenNumeric @bind-Value="@bill.AmountDue" Name="Amount Due" />
+		<RadzenNumeric @bind-Value="@Bill.AmountDue" Name="Amount Due" />
 	</RadzenColumn>
 	<RadzenColumn Size="6">
 		<RadzenLabel Text="Due Date" />
-		<RadzenDatePicker @bind-Value="@bill.DueDate" Name="DueDate" DateFormat="MM/dd/yyy" />
+		<RadzenDatePicker @bind-Value="@Bill.DueDate" Name="DueDate" DateFormat="MM/dd/yyy" />
 	</RadzenColumn>
 </RadzenRow>
 
 <RadzenRow Style="margin-top:10px">
 	<RadzenColumn Size="6">
 		<RadzenLabel Text="Balance" />
-		<RadzenNumeric @bind-Value="@bill.Balance" Name="Balance" />
+		<RadzenNumeric @bind-Value="@Bill.Balance" Name="Balance" />
 	</RadzenColumn>
 </RadzenRow>
 
@@ -50,7 +50,8 @@
 
 @code {
 
-	protected Bill bill = new Bill();
+	[Parameter]
+	public Bill? Bill { get; set; } = new Bill();
 	protected bool IsSaving = false;
 
 	protected async Task Save()
@@ -58,7 +59,12 @@
 		IsSaving = true;
 		await Task.Yield();
 
-		BillFlowContext.Bills.Add(bill);
+		if(Bill.ID == 0){
+			BillFlowContext.Bills.Add(Bill);
+		}else{
+			BillFlowContext.Update(Bill);
+		}
+		
 		await BillFlowContext.SaveChangesAsync();
 
 		IsSaving = false;
@@ -70,7 +76,7 @@
 
 		bool isValid = true;
 
-		isValid = bill.DueDate is not null && bill.AmountDue > 0 && bill.Name is not null;
+		isValid = Bill.DueDate is not null && Bill.AmountDue > 0 && Bill.Name is not null;
 
 		return isValid;
 	}
