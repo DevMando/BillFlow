@@ -13,6 +13,8 @@ builder.Services.AddScoped<DialogService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<TooltipService>();
 
+builder.Services.AddScoped<BillFlow.Services.BillFlowToolTipService>();
+
 // DbContext Service.
 builder.Services.AddDbContext<BillFlowContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
