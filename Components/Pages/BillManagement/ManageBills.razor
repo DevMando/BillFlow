@@ -1,6 +1,7 @@
 ﻿@page "/manage-bills"
 @using BillFlow.Models;
 @using BillFlow.Components.Pages;
+@using BillFlow.Components.Pages.Global;
 @using Radzen
 @using Radzen.Blazor
 @rendermode InteractiveServer
@@ -10,56 +11,82 @@
 <RadzenText>Manage Bills</RadzenText>
 
 <RadzenCard>
-	<RadzenStack Orientation="Orientation.Horizontal">
-		<RadzenButton Click="CreateBill">Create New Bill</RadzenButton>
-	</RadzenStack>
+    <RadzenStack Orientation="Orientation.Horizontal">
+        <RadzenButton Click="CreateBill">New Bill</RadzenButton>
+        <RadzenButton Icon="edit">Edit Bill</RadzenButton>
+        <RadzenButton Icon="delete_forver">Delete Bill</RadzenButton>
+    </RadzenStack>
 </RadzenCard>
 
 
 <RadzenSplitter />
 
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="true" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-				Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
-	<Columns>
-		<RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
-		<RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="420px" />
-		<RadzenDataGridColumn Property="@nameof(Bill.IsMonthy)" Title="Is Monthly Bill" Width="160px">
-			<Template Context="bill">
-				@if (bill.IsMonthy)
-				{
-					<span>Yes</span>
-				}
-				else
-				{
-					<span>No</span>
-				}
-			</Template>
-		</RadzenDataGridColumn>
-		<RadzenDataGridColumn Property="@nameof(Bill.Balance)" Title="Balance" Width="200px" />
-		<RadzenDataGridColumn Property="@nameof(Bill.AmountDue)" Title="Amount Due" Width="200px" />
-	</Columns>
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="true" FilterMode="FilterMode.Advanced" AllowRowSelectOnRowClick="true"
+                AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
+    <Columns>
+        <RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
+        <RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="420px" />
+        <RadzenDataGridColumn Property="@nameof(Bill.IsMonthy)" Title="Is Monthly Bill" Width="160px">
+            <Template Context="bill">
+                @if (bill.IsMonthy)
+                {
+                    <span>Yes</span>
+                }
+                else
+                {
+                    <span>No</span>
+                }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Bill.Balance)" Title="Balance" Width="200px" />
+        <RadzenDataGridColumn Property="@nameof(Bill.AmountDue)" Title="Amount Due" Width="200px" />
+    </Columns>
 </RadzenDataGrid>
 
 @code {
+    protected List<Bill> Bills { get; set; } = new List<Bill>();
+    protected List<Bill> DataGridSelectedBills { get; set; } = new List<Bill>();
+    protected bool IsLoading { get; set; } = false;
 
-	protected List<Bill> Bills = new List<Bill>();
-	protected bool IsLoading { get; set; } = false;
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        await Task.Yield();
+        Bills = await BillFlowContext.Bills.ToListAsync();
+        IsLoading = false;
+    }
 
-	protected override async Task OnInitializedAsync()
-	{
-		IsLoading = true;
-		await Task.Yield();
-		Bills = await BillFlowContext.Bills.ToListAsync();
-		IsLoading = false;
-	}
+    protected async Task CreateBill()
+    {
+        IsLoading = true;
+        await _DialogService.OpenAsync<CreateBill>("Create Bill");
+        Bills = await BillFlowContext.Bills.ToListAsync();
+        IsLoading = false;
+    }
 
-	protected async Task CreateBill()
-	{
-		IsLoading = true;
-		await _DialogService.OpenAsync<CreateBill>("Create Bill");
-		Bills = await BillFlowContext.Bills.ToListAsync();
-		IsLoading = false;
-	}
+    protected async Task EditBill()
+    {
+        IsLoading = true;
+        await _DialogService.OpenAsync<CreateBill>("Create Bill");
+        Bills = await BillFlowContext.Bills.ToListAsync();
+        IsLoading = false;
+    }
+
+    protected async Task DeleteBill(Bill bill)
+    {
+        IsLoading = true;
+
+        var dialogOptions = new DialogOptions()
+            {
+                CloseDialogOnEsc = false,
+                ShowClose = false,
+            };
+
+        await _DialogService.OpenAsync<ConfirmDialog>($"Are you sure you want to delete the selected bill ({bill.Name}) ?", null, dialogOptions);
+        Bills = await BillFlowContext.Bills.ToListAsync();
+        IsLoading = false;
+    }
 
 }
