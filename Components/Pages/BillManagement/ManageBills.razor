@@ -2,12 +2,13 @@
 @using BillFlow.Models;
 @using BillFlow.Components.Pages;
 @using BillFlow.Components.Pages.Global;
+@using BillFlow.Services;
 @using Radzen
 @using Radzen.Blazor
 @rendermode InteractiveServer
 @inject BillFlowContext BillFlowContext
 @inject DialogService _DialogService
-@inject TooltipService tooltipService
+@inject BillFlowToolTipService BillFlowToolTipService
 
 <RadzenText>Manage Bills</RadzenText>
 
@@ -27,8 +28,8 @@
     <Columns>
         <RadzenDataGridColumn>
             <Template Context="bill">
-                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info"  />
-                <RadzenButton Icon="delete_forver" Style="border-radius:50%" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))"  />
+                <RadzenButton Icon="delete_forver" Style="border-radius:50%" ButtonStyle="ButtonStyle.Primary" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
