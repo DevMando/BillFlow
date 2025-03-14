@@ -30,7 +30,7 @@
 	</RadzenColumn>
 	<RadzenColumn Size="6">
 		<RadzenLabel Text="Due Date" />
-		<RadzenDatePicker @bind-Value="@bill.DueDate" Name="DueDate" />
+		<RadzenDatePicker @bind-Value="@bill.DueDate" Name="DueDate" DateFormat="MM/dd/yyy" />
 	</RadzenColumn>
 </RadzenRow>
 
@@ -42,7 +42,7 @@
 </RadzenRow>
 
 <RadzenStack style="margin-top:10px" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
-	<RadzenButton Text="Save" Click="Save" Disabled="@IsSaving" ButtonStyle="ButtonStyle.Info" />
+	<RadzenButton Text="Save" Click="Save" Disabled="@(IsSaving || !ValidateNewBill())" ButtonStyle="ButtonStyle.Info" />
 	<RadzenButton Text="Cancel" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" />
 </RadzenStack>
 
@@ -63,6 +63,16 @@
 
 		IsSaving = false;
 		DialogService.Close();
+	}
+
+	protected bool ValidateNewBill()
+	{
+
+		bool isValid = true;
+
+		isValid = bill.DueDate is not null && bill.AmountDue > 0 && bill.Name is not null;
+
+		return isValid;
 	}
 
 }
