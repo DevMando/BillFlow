@@ -8,15 +8,22 @@
 @inject DialogService _DialogService
 
 <RadzenText>Manage Bills</RadzenText>
-<RadzenButton Click="CreateBill">Create New Bill</RadzenButton>
+
+<RadzenCard>
+	<RadzenStack Orientation="Orientation.Horizontal">
+		<RadzenButton Click="CreateBill">Create New Bill</RadzenButton>
+	</RadzenStack>
+</RadzenCard>
+
 
 <RadzenSplitter />
 
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-				Data="@Bills" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="true" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+				Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
 	<Columns>
-		<RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="160px" />
+		<RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
+		<RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="420px" />
 		<RadzenDataGridColumn Property="@nameof(Bill.IsMonthy)" Title="Is Monthly Bill" Width="160px">
 			<Template Context="bill">
 				@if (bill.IsMonthy)
@@ -29,9 +36,8 @@
 				}
 			</Template>
 		</RadzenDataGridColumn>
-		<RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="160px" />
-		<RadzenDataGridColumn Property="@nameof(Bill.AmountDue)" Title="Amount Due" Width="200px" />
 		<RadzenDataGridColumn Property="@nameof(Bill.Balance)" Title="Balance" Width="200px" />
+		<RadzenDataGridColumn Property="@nameof(Bill.AmountDue)" Title="Amount Due" Width="200px" />
 	</Columns>
 </RadzenDataGrid>
 
@@ -48,6 +54,12 @@
 		IsLoading = false;
 	}
 
-	protected async Task CreateBill() => await _DialogService.OpenAsync<CreateBill>("Create Bill");
+	protected async Task CreateBill()
+	{
+		IsLoading = true;
+		await _DialogService.OpenAsync<CreateBill>("Create Bill");
+		Bills = await BillFlowContext.Bills.ToListAsync();
+		IsLoading = false;
+	}
 
 }
