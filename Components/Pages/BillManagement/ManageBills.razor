@@ -14,7 +14,7 @@
 
 <RadzenCard>
     <RadzenStack Orientation="Orientation.Horizontal">
-        <RadzenButton Click="CreateBill">New Bill</RadzenButton>
+        <RadzenButton Icon="add_circle" Click="CreateBill" Text="Create"></RadzenButton>
     </RadzenStack>
 </RadzenCard>
 
@@ -28,8 +28,8 @@
     <Columns>
         <RadzenDataGridColumn>
             <Template Context="bill">
-                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))"  />
-                <RadzenButton Icon="delete_forver" Style="border-radius:50%" ButtonStyle="ButtonStyle.Primary" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
+                <RadzenButton Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))"  />
+                <RadzenButton Icon="cancel" Style="border-radius:50%" ButtonStyle="ButtonStyle.Danger" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
@@ -66,8 +66,9 @@
 
     protected async Task CreateBill()
     {
-        IsLoading = true;
         await _DialogService.OpenAsync<CreateBill>("Create Bill");
+        
+        IsLoading = true;
         Bills = await BillFlowContext.Bills.ToListAsync();
         IsLoading = false;
     }
