@@ -1,65 +1,113 @@
 ﻿@page "/manage-bills"
 @using BillFlow.Models;
 @using BillFlow.Components.Pages;
+@using BillFlow.Components.Pages.Global;
+@using BillFlow.Services;
 @using Radzen
 @using Radzen.Blazor
 @rendermode InteractiveServer
 @inject BillFlowContext BillFlowContext
 @inject DialogService _DialogService
+@inject BillFlowToolTipService BillFlowToolTipService
 
 <RadzenText>Manage Bills</RadzenText>
 
 <RadzenCard>
-	<RadzenStack Orientation="Orientation.Horizontal">
-		<RadzenButton Click="CreateBill">Create New Bill</RadzenButton>
-	</RadzenStack>
+    <RadzenStack Orientation="Orientation.Horizontal">
+        <RadzenButton Icon="add_circle" Click="CreateBill" Text="Create"></RadzenButton>
+    </RadzenStack>
 </RadzenCard>
 
 
 <RadzenSplitter />
 
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="true" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-				Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
-	<Columns>
-		<RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
-		<RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="420px" />
-		<RadzenDataGridColumn Property="@nameof(Bill.IsMonthy)" Title="Is Monthly Bill" Width="160px">
-			<Template Context="bill">
-				@if (bill.IsMonthy)
-				{
-					<span>Yes</span>
-				}
-				else
-				{
-					<span>No</span>
-				}
-			</Template>
-		</RadzenDataGridColumn>
-		<RadzenDataGridColumn Property="@nameof(Bill.Balance)" Title="Balance" Width="200px" />
-		<RadzenDataGridColumn Property="@nameof(Bill.AmountDue)" Title="Amount Due" Width="200px" />
-	</Columns>
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="true" FilterMode="FilterMode.Advanced" AllowRowSelectOnRowClick="true"
+AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
+    <Columns>
+        <RadzenDataGridColumn>
+            <Template Context="bill">
+                <RadzenButton Click="() => EditBill(bill)" Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))" />
+                <RadzenButton Click="() => DeleteBill(bill)" Icon="cancel" Style="border-radius:50%" ButtonStyle="ButtonStyle.Danger" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Bill.Name)" Title="Name" Frozen="true" Width="220px" />
+        <RadzenDataGridColumn Property="@nameof(Bill.Description)" Title="Description" Width="420px" />
+        <RadzenDataGridColumn Property="@nameof(Bill.IsMonthy)" Title="Is Monthly Bill" Width="160px">
+            <Template Context="bill">
+                @if (bill.IsMonthy)
+                {
+                    <span>Yes</span>
+                }
+                else
+                {
+                    <span>No</span>
+                }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Bill.Balance)" Title="Balance" Width="200px" />
+        <RadzenDataGridColumn Property="@nameof(Bill.AmountDue)" Title="Amount Due" Width="200px" />
+    </Columns>
 </RadzenDataGrid>
 
 @code {
+    protected List<Bill> Bills { get; set; } = new List<Bill>();
+    protected List<Bill> DataGridSelectedBills { get; set; } = new List<Bill>();
+    protected bool IsLoading { get; set; } = false;
 
-	protected List<Bill> Bills = new List<Bill>();
-	protected bool IsLoading { get; set; } = false;
+    protected override async Task OnInitializedAsync()
+    {
+        Bills = await GetBills();
+    }
 
-	protected override async Task OnInitializedAsync()
-	{
-		IsLoading = true;
-		await Task.Yield();
-		Bills = await BillFlowContext.Bills.ToListAsync();
-		IsLoading = false;
-	}
+    protected async Task<List<Bill>> GetBills()
+    {
+        IsLoading = true;
+        var billList = await BillFlowContext.Bills.ToListAsync();
+        IsLoading = false;
+        return billList;
+    }
 
-	protected async Task CreateBill()
-	{
-		IsLoading = true;
-		await _DialogService.OpenAsync<CreateBill>("Create Bill");
-		Bills = await BillFlowContext.Bills.ToListAsync();
-		IsLoading = false;
-	}
+    protected async Task CreateBill()
+    {
+        bool createdNewBill = await _DialogService.OpenAsync<CreateEditBill>("Create Bill") ?? false;
+
+        if (createdNewBill)
+        {
+            Bills = await GetBills();
+        }
+    }
+
+    protected async Task EditBill(Bill bill)
+    {
+        Dictionary<string, object> parameters = new Dictionary<string, object>() { { "Bill", bill} };
+        await _DialogService.OpenAsync<CreateEditBill>("Create Bill", parameters);
+        Bills = await GetBills();
+    }
+
+    protected async Task DeleteBill(Bill bill)
+    {
+
+        var dialogOptions = new DialogOptions()
+            {
+                CloseDialogOnEsc = false,
+                ShowClose = false,
+            };
+
+        var billDesc = $"{bill.Name} {(String.IsNullOrEmpty(bill.Description) ? String.Empty : $"({bill.Description})")}";
+
+        Dictionary<string, object> parameters = new Dictionary<string, object>() { { "BodyText", $"Please confirm deletion of {billDesc}" } };
+
+        bool IsConfirmedToBeDeleted = await _DialogService.OpenAsync<ConfirmDialog>("Confirm Deletion", parameters, dialogOptions) ?? false;
+
+        if(IsConfirmedToBeDeleted){
+
+            BillFlowContext.Remove(bill);
+            await BillFlowContext.SaveChangesAsync();
+        }
+
+        Bills = await GetBills();
+    }
 
 }

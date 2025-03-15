@@ -1,0 +1,15 @@
+﻿@page "/ConfirmDialog";
+@inject DialogService DialogService
+
+<p>@BodyText</p>
+
+<RadzenStack Orientation="Orientation.Horizontal">
+    <RadzenButton ButtonStyle="ButtonStyle.Primary" Text="Confirm" Click="() => DialogService.Close(true)"/>
+        <RadzenButton ButtonStyle="ButtonStyle.Light" Text="Cancel" Click="() => DialogService.Close(false)"/>
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public string BodyText { get; set; } = String.Empty;
+
+}
