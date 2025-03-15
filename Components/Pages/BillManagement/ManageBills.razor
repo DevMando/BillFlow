@@ -66,7 +66,7 @@ Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="Da
 
     protected async Task CreateBill()
     {
-        bool createdNewBill = await _DialogService.OpenAsync<CreateBill>("Create Bill");
+        bool createdNewBill = await _DialogService.OpenAsync<CreateEditBill>("Create Bill") ?? false;
 
         if (createdNewBill)
         {
@@ -79,9 +79,9 @@ Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="Da
     protected async Task EditBill(Bill bill)
     {
         IsLoading = true;
-        Dictionary<string, object> paramsDictionary = new Dictionary<string, object>() { { "Bill", bill} };
+        Dictionary<string, object> parameters = new Dictionary<string, object>() { { "Bill", bill} };
 
-        await _DialogService.OpenAsync<CreateBill>("Create Bill");
+        await _DialogService.OpenAsync<CreateEditBill>("Create Bill", parameters);
         Bills = await BillFlowContext.Bills.ToListAsync();
 
         IsLoading = false;
@@ -90,16 +90,15 @@ Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="Da
     protected async Task DeleteBill(Bill bill)
     {
 
-
         var dialogOptions = new DialogOptions()
             {
                 CloseDialogOnEsc = false,
                 ShowClose = false,
             };
 
-        Dictionary<string, object> paramsDictionary = new Dictionary<string, object>() { { "BodyText", $"Please confirm deletion of bill '{bill.Name}  {bill.Description}." } };
+        Dictionary<string, object> parameters = new Dictionary<string, object>() { { "BodyText", $"Please confirm deletion of bill labeled '{bill.Name}. {bill.Description}." } };
 
-        bool isToBeDeleted = await _DialogService.OpenAsync<ConfirmDialog>("Confirm Deletion", null, dialogOptions);
+        bool isToBeDeleted = await _DialogService.OpenAsync<ConfirmDialog>("Confirm Deletion", parameters, dialogOptions) ?? false;
 
         IsLoading = true;
 

@@ -1,4 +1,4 @@
-﻿@page "/create-bill"
+﻿@page "/create-edit-bill"
 @inject BillFlowContext BillFlowContext
 @rendermode InteractiveServer
 @using Radzen
@@ -61,8 +61,6 @@
 
 		if(Bill.ID == 0){
 			BillFlowContext.Bills.Add(Bill);
-		}else{
-			BillFlowContext.Update(Bill);
 		}
 		
 		await BillFlowContext.SaveChangesAsync();
@@ -73,10 +71,9 @@
 
 	protected bool ValidateNewBill()
 	{
-
 		bool isValid = true;
 
-		isValid = Bill.DueDate is not null && Bill.AmountDue > 0 && Bill.Name is not null;
+		isValid = Bill is not null &&  Bill.DueDate is not null && Bill.AmountDue > 0;
 
 		return isValid;
 	}
