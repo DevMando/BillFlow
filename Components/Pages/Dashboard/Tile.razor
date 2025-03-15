@@ -1,0 +1,22 @@
+﻿
+
+<a href=@LinkUrl class="dashboard-tile">
+    <RadzenCard class="dashboard-card">
+        <ChildContent>
+            <RadzenImage Path="@ImageLocation" Style="width:300px; height:300px;"/>
+            <h5>@Label</h5>
+        </ChildContent>
+    </RadzenCard>
+</a>
+
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = String.Empty;
+
+    [Parameter]
+    public string ImageLocation { get; set; } = String.Empty;
+
+    [Parameter]
+    public string LinkUrl { get; set; } = String.Empty;
+}
