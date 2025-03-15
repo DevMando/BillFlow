@@ -58,10 +58,15 @@ Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="Da
 
     protected override async Task OnInitializedAsync()
     {
+        Bills = await GetBills();
+    }
+
+    protected async Task<List<Bill>> GetBills()
+    {
         IsLoading = true;
-        await Task.Yield();
-        Bills = await BillFlowContext.Bills.ToListAsync();
+        var billList = await BillFlowContext.Bills.ToListAsync();
         IsLoading = false;
+        return billList;
     }
 
     protected async Task CreateBill()
@@ -70,21 +75,15 @@ Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="Da
 
         if (createdNewBill)
         {
-            IsLoading = true;
-            Bills = await BillFlowContext.Bills.ToListAsync();
-            IsLoading = false;
+            Bills = await GetBills();
         }
     }
 
     protected async Task EditBill(Bill bill)
     {
-        IsLoading = true;
         Dictionary<string, object> parameters = new Dictionary<string, object>() { { "Bill", bill} };
-
         await _DialogService.OpenAsync<CreateEditBill>("Create Bill", parameters);
-        Bills = await BillFlowContext.Bills.ToListAsync();
-
-        IsLoading = false;
+        Bills = await GetBills();
     }
 
     protected async Task DeleteBill(Bill bill)
@@ -96,20 +95,19 @@ Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="Da
                 ShowClose = false,
             };
 
-        Dictionary<string, object> parameters = new Dictionary<string, object>() { { "BodyText", $"Please confirm deletion of bill labeled '{bill.Name}. {bill.Description}." } };
+        var billDesc = $"{bill.Name} {(String.IsNullOrEmpty(bill.Description) ? String.Empty : $"({bill.Description})")}";
 
-        bool isToBeDeleted = await _DialogService.OpenAsync<ConfirmDialog>("Confirm Deletion", parameters, dialogOptions) ?? false;
+        Dictionary<string, object> parameters = new Dictionary<string, object>() { { "BodyText", $"Please confirm deletion of {billDesc}" } };
 
-        IsLoading = true;
+        bool IsConfirmedToBeDeleted = await _DialogService.OpenAsync<ConfirmDialog>("Confirm Deletion", parameters, dialogOptions) ?? false;
 
-        if(isToBeDeleted){
+        if(IsConfirmedToBeDeleted){
 
             BillFlowContext.Remove(bill);
             await BillFlowContext.SaveChangesAsync();
         }
 
-        Bills = await BillFlowContext.Bills.ToListAsync();
-        IsLoading = false;
+        Bills = await GetBills();
     }
 
 }
