@@ -10,6 +10,7 @@ namespace BillFlow.Models
         public DbSet<Bill> Bills { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<BillTag> BillTags { get; set; }
+        public DbSet<Account> Accounts { get; set; }
 
     }
 }

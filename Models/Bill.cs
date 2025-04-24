@@ -13,5 +13,6 @@
         public List<Payment>? Payments { get; set; } = null;
         public bool IsMonthy { get; set; } = false;
         public bool IsPayedOff { get; set; } = false;
+        public string? Website { get; set; } = null;
     }
 }
