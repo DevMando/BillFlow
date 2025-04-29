@@ -1,6 +1,6 @@
 # BillFlow
 
-![Blazor](https://img.shields.io/badge/Blazor-WASM-purple)
+![Blazor](https://img.shields.io/badge/Blazor-Server-purple)
 ![.NET](https://img.shields.io/badge/.NET-8.0-blueviolet)
 ![Status](https://img.shields.io/badge/Status-Work_in_Progress-yellow)
 ![License](https://img.shields.io/badge/License-MIT-green)
