@@ -3,79 +3,158 @@
 @rendermode InteractiveServer
 @using Radzen
 @using Radzen.Blazor
+@using BillFlow.Models
 @inject DialogService DialogService
 
-<RadzenRow>
-	<RadzenColumn Size="12">
-		<RadzenLabel Text="Bill Name" />
-		<RadzenTextBox @bind-Value="@Bill.Name" Name="Name" Style="width:100%" />
-	</RadzenColumn>
-	<RadzenColumn Size="12">
-		<RadzenLabel Text="Description" />
-		<RadzenTextBox @bind-Value="@Bill.Description" Name="Description" Style="width:100%" />
-	</RadzenColumn>
-</RadzenRow>
+<RadzenStack Orientation="Orientation.Vertical" Gap="1rem">
+	<RadzenRow>
+		<RadzenColumn Size="12">
+			<RadzenLabel Text="Bill Name" />
+			<RadzenTextBox @bind-Value="@Bill.Name" Name="Name" Style="width:100%" Placeholder="e.g., Electric Bill" />
+		</RadzenColumn>
+	</RadzenRow>
 
-<RadzenRow style="margin-top:10px">
-	<RadzenColumn Size="12">
-		<RadzenLabel Text="Monthly Bill" />
-		<RadzenCheckBox @bind-Value="@Bill.IsMonthy" Name="MonthlyBill" />
-	</RadzenColumn>
-</RadzenRow>
+	<RadzenRow>
+		<RadzenColumn Size="12">
+			<RadzenLabel Text="Description (Optional)" />
+			<RadzenTextBox @bind-Value="@Bill.Description" Name="Description" Style="width:100%" Placeholder="Additional details about this bill" />
+		</RadzenColumn>
+	</RadzenRow>
 
-<RadzenRow style="margin-top:10px">
-	<RadzenColumn Size="6">
-		<RadzenLabel Text="Amount Due" />
-		<RadzenNumeric @bind-Value="@Bill.AmountDue" Name="Amount Due" />
-	</RadzenColumn>
-	<RadzenColumn Size="6">
-		<RadzenLabel Text="Due Date" />
-		<RadzenDatePicker @bind-Value="@Bill.DueDate" Name="DueDate" DateFormat="MM/dd/yyy" />
-	</RadzenColumn>
-</RadzenRow>
+	<RadzenRow>
+		<RadzenColumn Size="6">
+			<RadzenLabel Text="Bill Category" />
+			<RadzenDropDown @bind-Value="@SelectedCategoryName" Data="@CategoryOptions" Style="width:100%" 
+							Name="Category" Placeholder="Select a category" />
+		</RadzenColumn>
+		<RadzenColumn Size="6">
+			<RadzenLabel Text="Bill Frequency" />
+			<RadzenDropDown @bind-Value="@Bill.Frequency" Data="@FrequencyOptions" Style="width:100%" 
+							Name="Frequency" />
+		</RadzenColumn>
+	</RadzenRow>
 
-<RadzenRow Style="margin-top:10px">
-	<RadzenColumn Size="6">
-		<RadzenLabel Text="Balance" />
-		<RadzenNumeric @bind-Value="@Bill.Balance" Name="Balance" />
-	</RadzenColumn>
-</RadzenRow>
+	<RadzenRow>
+		<RadzenColumn Size="6">
+			<RadzenLabel Text="Amount Due" />
+			<RadzenNumeric @bind-Value="@Bill.AmountDue" Name="AmountDue" Style="width:100%" 
+						   Format="C" ShowUpDown="false" />
+		</RadzenColumn>
+		<RadzenColumn Size="6">
+			<RadzenLabel Text="Due Date" />
+			<RadzenDatePicker @bind-Value="@Bill.DueDate" Name="DueDate" DateFormat="MM/dd/yyyy" Style="width:100%" />
+		</RadzenColumn>
+	</RadzenRow>
 
-<RadzenStack style="margin-top:10px" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
-	<RadzenButton Text="Save" Click="Save" Disabled="@(IsSaving || !ValidateNewBill())" ButtonStyle="ButtonStyle.Info" />
-	<RadzenButton Text="Cancel" Click="() => DialogService.Close(false)" ButtonStyle="ButtonStyle.Light" />
+	<RadzenRow>
+		<RadzenColumn Size="6">
+			<RadzenLabel Text="Balance (for loans)" />
+			<RadzenNumeric @bind-Value="@Bill.Balance" Name="Balance" Style="width:100%" 
+						   Format="C" ShowUpDown="false" />
+		</RadzenColumn>
+		<RadzenColumn Size="6" Style="margin-top:24px">
+			<RadzenCheckBox @bind-Value="@Bill.IsFixedAmount" Name="IsFixedAmount" />
+			<RadzenLabel Text="Fixed amount each month" Component="IsFixedAmount" />
+		</RadzenColumn>
+	</RadzenRow>
+
+	<RadzenRow>
+		<RadzenColumn Size="6">
+			<RadzenCheckBox @bind-Value="@Bill.IsMonthy" Name="IsMonthly" />
+			<RadzenLabel Text="Monthly Bill (legacy)" Component="IsMonthly" />
+		</RadzenColumn>
+		<RadzenColumn Size="6">
+			<RadzenCheckBox @bind-Value="@Bill.IsPayedOff" Name="IsPayedOff" />
+			<RadzenLabel Text="Bill is paid off" Component="IsPayedOff" />
+		</RadzenColumn>
+	</RadzenRow>
+
+	<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
+		<RadzenButton Text="Save" Click="Save" Disabled="@(IsSaving || !ValidateNewBill())" 
+					  ButtonStyle="ButtonStyle.Info" />
+		<RadzenButton Text="Cancel" Click="() => DialogService.Close(false)" 
+					  ButtonStyle="ButtonStyle.Light" />
+	</RadzenStack>
 </RadzenStack>
 
 
 
 @code {
-
-	[Parameter]
-	public Bill? Bill { get; set; } = new Bill();
+	[Parameter] public Bill? Bill { get; set; } = new Bill();
+	
 	protected bool IsSaving = false;
+	protected string SelectedCategoryName = "";
+	protected List<string> CategoryOptions = new List<string> { "Utility", "Credit Card", "Loan", "Subscription/Service", "Insurance", "Other" };
+	protected List<string> FrequencyOptions = new List<string> { BillFrequency.Monthly, BillFrequency.Quarterly, BillFrequency.SemiAnnual, BillFrequency.Annual };
+	protected List<BillTag> BillTags = new List<BillTag>();
+
+	protected override async Task OnInitializedAsync()
+	{
+		// Ensure we have a valid bill instance
+		if (Bill == null)
+		{
+			Bill = new Bill();
+		}
+
+		// Load existing bill tags
+		BillTags = await BillFlowContext.BillTags.ToListAsync();
+
+		// Set selected category if editing existing bill
+		if (Bill.BillTag != null)
+		{
+			SelectedCategoryName = Bill.BillTag.Name;
+		}
+	}
 
 	protected async Task Save()
 	{
 		IsSaving = true;
 		await Task.Yield();
 
-		if(Bill.ID == 0){
-			BillFlowContext.Bills.Add(Bill);
-		}
-		
-		await BillFlowContext.SaveChangesAsync();
+		try
+		{
+			// Handle category selection
+			if (!string.IsNullOrEmpty(SelectedCategoryName))
+			{
+				var existingTag = BillTags.FirstOrDefault(bt => bt.Name == SelectedCategoryName);
+				if (existingTag == null)
+				{
+					// Create new tag
+					existingTag = new BillTag(SelectedCategoryName);
+					BillFlowContext.BillTags.Add(existingTag);
+					await BillFlowContext.SaveChangesAsync(); // Save to get ID
+				}
+				Bill.BillTag = existingTag;
+			}
 
-		IsSaving = false;
-		DialogService.Close(true);
+			if (Bill.ID == 0)
+			{
+				BillFlowContext.Bills.Add(Bill);
+			}
+			else
+			{
+				BillFlowContext.Bills.Update(Bill);
+			}
+			
+			await BillFlowContext.SaveChangesAsync();
+			DialogService.Close(true);
+		}
+		catch (Exception ex)
+		{
+			// Handle error (in a real app, you'd want proper error handling)
+			throw;
+		}
+		finally
+		{
+			IsSaving = false;
+		}
 	}
 
 	protected bool ValidateNewBill()
 	{
-		bool isValid = true;
-
-		isValid = Bill is not null &&  Bill.DueDate is not null && Bill.AmountDue > 0;
-
-		return isValid;
+		return Bill != null && 
+			   !string.IsNullOrWhiteSpace(Bill.Name) &&
+			   Bill.DueDate != null && 
+			   Bill.AmountDue > 0;
 	}
-
 }

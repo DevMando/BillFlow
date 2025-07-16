@@ -3,7 +3,6 @@ using System;
 using BillFlow.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -16,19 +15,47 @@ namespace BillFlow.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.3")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.8");
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            modelBuilder.Entity("BillFlow.Models.Account", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AccountNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CurrentBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Institution")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("MonthlyIncome")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Accounts");
+                });
 
             modelBuilder.Entity("BillFlow.Models.Bill", b =>
                 {
                     b.Property<int>("ID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<decimal>("AmountDue")
                         .HasColumnType("decimal(18,2)");
@@ -37,23 +64,36 @@ namespace BillFlow.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("BillTagID")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DueDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsFixedAmount")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsMonthy")
-                        .HasColumnType("bit");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsPayedOff")
-                        .HasColumnType("bit");
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastGeneratedMonth")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("NextDueDate")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("ID");
 
@@ -62,48 +102,172 @@ namespace BillFlow.Migrations
                     b.ToTable("Bills");
                 });
 
+            modelBuilder.Entity("BillFlow.Models.BillInstance", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("AmountDue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("BillID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("BillID", "Year", "Month")
+                        .IsUnique();
+
+                    b.ToTable("BillInstances");
+                });
+
             modelBuilder.Entity("BillFlow.Models.BillTag", b =>
                 {
                     b.Property<int>("ID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("ID");
 
                     b.ToTable("BillTags");
                 });
 
+            modelBuilder.Entity("BillFlow.Models.MonthlyBalanceHistory", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("EndingBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("StartingBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalDebits")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalDeposits")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AccountID", "Year", "Month")
+                        .IsUnique();
+
+                    b.ToTable("MonthlyBalanceHistory");
+                });
+
             modelBuilder.Entity("BillFlow.Models.Payment", b =>
                 {
                     b.Property<int>("ID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+                    b.Property<int?>("AccountID")
+                        .HasColumnType("INTEGER");
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("BillID")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BillInstanceID")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("SecondaryAccountID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("SecondaryAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("ID");
 
+                    b.HasIndex("AccountID");
+
                     b.HasIndex("BillID");
 
+                    b.HasIndex("BillInstanceID");
+
+                    b.HasIndex("SecondaryAccountID");
+
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("BillFlow.Models.Transaction", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PaymentID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AccountID");
+
+                    b.HasIndex("PaymentID");
+
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("BillFlow.Models.Bill", b =>
@@ -115,10 +279,10 @@ namespace BillFlow.Migrations
                     b.Navigation("BillTag");
                 });
 
-            modelBuilder.Entity("BillFlow.Models.Payment", b =>
+            modelBuilder.Entity("BillFlow.Models.BillInstance", b =>
                 {
                     b.HasOne("BillFlow.Models.Bill", "Bill")
-                        .WithMany("Payments")
+                        .WithMany("BillInstances")
                         .HasForeignKey("BillID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -126,9 +290,87 @@ namespace BillFlow.Migrations
                     b.Navigation("Bill");
                 });
 
+            modelBuilder.Entity("BillFlow.Models.MonthlyBalanceHistory", b =>
+                {
+                    b.HasOne("BillFlow.Models.Account", "Account")
+                        .WithMany("BalanceHistory")
+                        .HasForeignKey("AccountID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("BillFlow.Models.Payment", b =>
+                {
+                    b.HasOne("BillFlow.Models.Account", "Account")
+                        .WithMany("Payments")
+                        .HasForeignKey("AccountID");
+
+                    b.HasOne("BillFlow.Models.Bill", "Bill")
+                        .WithMany("Payments")
+                        .HasForeignKey("BillID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BillFlow.Models.BillInstance", "BillInstance")
+                        .WithMany("Payments")
+                        .HasForeignKey("BillInstanceID");
+
+                    b.HasOne("BillFlow.Models.Account", "SecondaryAccount")
+                        .WithMany()
+                        .HasForeignKey("SecondaryAccountID");
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Bill");
+
+                    b.Navigation("BillInstance");
+
+                    b.Navigation("SecondaryAccount");
+                });
+
+            modelBuilder.Entity("BillFlow.Models.Transaction", b =>
+                {
+                    b.HasOne("BillFlow.Models.Account", "Account")
+                        .WithMany("Transactions")
+                        .HasForeignKey("AccountID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BillFlow.Models.Payment", "Payment")
+                        .WithMany("Transactions")
+                        .HasForeignKey("PaymentID");
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("BillFlow.Models.Account", b =>
+                {
+                    b.Navigation("BalanceHistory");
+
+                    b.Navigation("Payments");
+
+                    b.Navigation("Transactions");
+                });
+
             modelBuilder.Entity("BillFlow.Models.Bill", b =>
                 {
+                    b.Navigation("BillInstances");
+
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("BillFlow.Models.BillInstance", b =>
+                {
+                    b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("BillFlow.Models.Payment", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

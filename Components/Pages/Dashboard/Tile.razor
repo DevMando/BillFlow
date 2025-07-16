@@ -3,8 +3,10 @@
 <a href=@LinkUrl class="dashboard-tile">
     <RadzenCard class="dashboard-card">
         <ChildContent>
-            <RadzenImage Path="@ImageLocation" Style="width:300px; height:300px;"/>
-            <h5>@Label</h5>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenImage Path="@ImageLocation" Style="width:300px; height:300px;" />
+                <h5>@Label</h5>
+            </RadzenStack>
         </ChildContent>
     </RadzenCard>
 </a>

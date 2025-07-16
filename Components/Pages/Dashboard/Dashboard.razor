@@ -1,47 +1,32 @@
 ﻿@page "/Dashboard"
 @rendermode InteractiveServer
 
+<RadzenStack AlignItems="AlignItems.Start" Orientation="Orientation.Horizontal">
+    <RadzenText TextStyle="TextStyle.DisplayH4">Welcome to BillFlow @name!</RadzenText>
+</RadzenStack>
+
 <RadzenCard>
-	<ChildContent>
-		<RadzenStack AlignItems="AlignItems.Start" Orientation="Orientation.Horizontal">
-			<RadzenText TextStyle="TextStyle.DisplayH4">Welcome to BillFlow @name!</RadzenText>
-		</RadzenStack>
+    <ChildContent>
 
-		<div class="row">
-			<div class="col-md-6">
-				<Tile Label="Pay Bills" LinkUrl="pay-bills"/>
-			</div>
-			<div class="col-md-6">
-				<RadzenCard class="dashboard-card">
-					<ChildContent>
-						<a href="manage-bills" class="btn btn-primary">
-							<h3>Manage Bills</h3>
-						</a>
-					</ChildContent>
-				</RadzenCard>
-			</div>
-		</div>
+        <RadzenRow>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <Tile Label="Pay Bills" LinkUrl="pay-bills" />
+                <Tile Label="Manage Bills" LinkUrl="manage-bills" />
+            </RadzenStack>
 
-		<div class="row">
-			<div class="col-md-6">
-				<RadzenCard class="dashboard-card">
-					<ChildContent>
-						<h3>Income Sources</h3>
-					</ChildContent>
-				</RadzenCard>
-			</div>
-			<div class="col-md-6">
-				<RadzenCard class="dashboard-card">
-					<ChildContent>
-						<h3>Reports</h3>
-					</ChildContent>
-				</RadzenCard>
-			</div>
-		</div>
-	</ChildContent>
+        </RadzenRow>
+
+        <RadzenRow>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <Tile Label="Accounts" LinkUrl="accounts" />
+                <Tile Label="Reports" />
+            </RadzenStack>
+        </RadzenRow>
+
+    </ChildContent>
 </RadzenCard>
 
 @code {
-	protected string name = String.Empty;
+    protected string name = String.Empty;
 
 }
