@@ -12,17 +12,16 @@ namespace BillFlow.Services
             _context = context;
         }
 
-        public async Task<List<BillInstance>> GenerateBillInstancesForMonth(int year, int month)
+        public async Task<List<BillInstance>> GenerateBillInstancesForMonth(int year, int month, bool forceGenerate = false)
         {
-            // Get all bills first for debugging
-            var allBills = await _context.Bills.ToListAsync();
-            
             var bills = await _context.Bills
                 .Where(b => !b.IsPayedOff)
                 .ToListAsync();
 
-            // Filter using the method that we can debug
-            var eligibleBills = bills.Where(b => b.ShouldGenerateForMonth(year, month)).ToList();
+            // If forceGenerate is true, generate for all bills regardless of frequency
+            var eligibleBills = forceGenerate 
+                ? bills.ToList() 
+                : bills.Where(b => b.ShouldGenerateForMonth(year, month)).ToList();
 
             var generatedInstances = new List<BillInstance>();
 
@@ -38,8 +37,16 @@ namespace BillFlow.Services
                     _context.BillInstances.Add(instance);
                     generatedInstances.Add(instance);
 
-                    // Update bill's last generated month
-                    bill.LastGeneratedMonth = new DateTime(year, month, 1);
+                    // Update bill's last generated month only for proper frequency intervals
+                    // or if we're force generating
+                    if (forceGenerate || 
+                        bill.Frequency == "Monthly" || 
+                        (bill.Frequency == "Quarterly" && month % 3 == 1) ||
+                        (bill.Frequency == "SemiAnnual" && (month == 1 || month == 7)) ||
+                        (bill.Frequency == "Annual" && month == 1))
+                    {
+                        bill.LastGeneratedMonth = new DateTime(year, month, 1);
+                    }
                 }
             }
 
@@ -49,7 +56,13 @@ namespace BillFlow.Services
 
         public async Task<List<BillInstance>> GetBillInstancesForMonth(int year, int month, bool generateIfMissing = true)
         {
-            // First try to get existing instances
+            // Always generate missing instances first if requested
+            if (generateIfMissing)
+            {
+                await GenerateBillInstancesForMonth(year, month);
+            }
+            
+            // Then get all instances for the month
             var instances = await _context.BillInstances
                 .Include(bi => bi.Bill)
                 .ThenInclude(b => b.BillTag)
@@ -57,21 +70,6 @@ namespace BillFlow.Services
                 .Where(bi => bi.Year == year && bi.Month == month)
                 .OrderBy(bi => bi.DueDate)
                 .ToListAsync();
-
-            // If no instances exist and generateIfMissing is true, generate them
-            if (!instances.Any() && generateIfMissing)
-            {
-                await GenerateBillInstancesForMonth(year, month);
-                
-                // Reload instances after generation
-                instances = await _context.BillInstances
-                    .Include(bi => bi.Bill)
-                    .ThenInclude(b => b.BillTag)
-                    .Include(bi => bi.Payments)
-                    .Where(bi => bi.Year == year && bi.Month == month)
-                    .OrderBy(bi => bi.DueDate)
-                    .ToListAsync();
-            }
 
             return instances;
         }
@@ -110,6 +108,12 @@ namespace BillFlow.Services
 
             return generated;
         }
+        
+        // Add a method specifically for force generating all bills for a month
+        public async Task<List<BillInstance>> ForceGenerateAllBillsForMonth(int year, int month)
+        {
+            return await GenerateBillInstancesForMonth(year, month, forceGenerate: true);
+        }
 
         public async Task<string> GetDebugInfo(int year, int month)
         {
@@ -120,9 +124,18 @@ namespace BillFlow.Services
                 .Where(bi => bi.Year == year && bi.Month == month)
                 .ToListAsync();
 
-            return $"Total Bills: {allBills.Count}, Active Bills: {activeBills.Count}, " +
+            var debugInfo = $"Total Bills: {allBills.Count}, Active Bills: {activeBills.Count}, " +
                    $"Eligible for {year}/{month}: {eligibleBills.Count}, " +
                    $"Existing Instances: {existingInstances.Count}";
+            
+            // Add details about filtered bills
+            var filteredBills = activeBills.Where(b => !b.ShouldGenerateForMonth(year, month)).ToList();
+            if (filteredBills.Any())
+            {
+                debugInfo += $" | Filtered Bills: {string.Join(", ", filteredBills.Select(b => $"{b.Name}({b.Frequency})"))}";
+            }
+            
+            return debugInfo;
         }
     }
 }

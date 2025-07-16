@@ -29,22 +29,37 @@
         {
             if (IsPayedOff) return false;
             
-            var targetDate = new DateTime(year, month, 1);
+            // Simplified approach: Let's be more permissive and generate instances
+            // The BillGenerationService will handle duplicate prevention
             
-            // Check if we already generated for this month
-            if (LastGeneratedMonth.HasValue && 
-                LastGeneratedMonth.Value.Year == year && 
-                LastGeneratedMonth.Value.Month == month)
-                return false;
-
             return Frequency switch
             {
                 "Monthly" => true,
                 "Quarterly" => month % 3 == 1, // Jan, Apr, Jul, Oct
-                "SemiAnnual" => month == 1 || month == 7, // Jan, Jul
+                "SemiAnnual" => month == 1 || month == 7, // Jan, Jul  
                 "Annual" => month == 1, // January only
-                _ => true
+                _ => true // Default case for any other frequency
             };
+        }
+        
+        // New method: Check if bill should be visible on PayBills page regardless of generation status
+        public bool ShouldShowForMonth(int year, int month)
+        {
+            if (IsPayedOff) return false;
+            
+            // Show monthly bills every month
+            if (Frequency == "Monthly") return true;
+            
+            // Show quarterly bills every month, but they generate quarterly
+            if (Frequency == "Quarterly") return true;
+            
+            // Show semi-annual bills every month, but they generate semi-annually
+            if (Frequency == "SemiAnnual") return true;
+            
+            // Show annual bills every month, but they generate annually
+            if (Frequency == "Annual") return true;
+            
+            return true; // Default: show all bills
         }
     }
 

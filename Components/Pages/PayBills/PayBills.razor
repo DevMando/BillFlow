@@ -331,8 +331,8 @@
     {
         try
         {
-            await BillGenerationService.GenerateBillInstancesForMonth(CurrentYear, CurrentMonth);
-            NotificationService.Notify(NotificationSeverity.Info, "Debug", "Forced bill generation completed");
+            var generated = await BillGenerationService.ForceGenerateAllBillsForMonth(CurrentYear, CurrentMonth);
+            NotificationService.Notify(NotificationSeverity.Info, "Debug", $"Forced bill generation completed. Generated {generated.Count} new instances.");
             await LoadData();
         }
         catch (Exception ex)
