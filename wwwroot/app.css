@@ -73,3 +73,7 @@ h1:focus {
     border-radius: 20px;
 }
 
+.dashboard-tile{
+    text-decoration:none!important;
+}
+

@@ -1,0 +1,190 @@
+@page "/accounts"
+@using BillFlow.Models
+@using BillFlow.Services
+@using BillFlow.Components.Pages.Global
+@using Radzen
+@using Radzen.Blazor
+@rendermode InteractiveServer
+@inject BillFlowContext BillFlowContext
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject BillFlowToolTipService BillFlowToolTipService
+
+<PageTitle>Manage Accounts</PageTitle>
+
+<RadzenText TextStyle="TextStyle.H4">Manage Accounts</RadzenText>
+
+<RadzenCard>
+    <RadzenStack Orientation="Orientation.Horizontal">
+        <RadzenButton Icon="add_circle" Click="CreateAccount" Text="Add Account" ButtonStyle="ButtonStyle.Success"></RadzenButton>
+    </RadzenStack>
+</RadzenCard>
+
+<RadzenSplitter />
+
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="true" 
+               FilterMode="FilterMode.Advanced" AllowRowSelectOnRowClick="true"
+               AllowSorting="true" PageSize="1000" AllowPaging="true" 
+               PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+               Data="@Accounts" LogicalFilterOperator="LogicalFilterOperator.Or" 
+               SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
+    <Columns>
+        <RadzenDataGridColumn Width="106px" MaxWidth="106px" Title="Actions">
+            <Template Context="account">
+                <RadzenButton Click="() => EditAccount(account)" Icon="edit" 
+                             Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" 
+                             Shade="Shade.Lighter" Variant="Variant.Flat" 
+                             MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))" />
+                <RadzenButton Click="() => DeleteAccount(account)" Icon="cancel" 
+                             Style="border-radius:50%" ButtonStyle="ButtonStyle.Danger" 
+                             Shade="Shade.Lighter" Variant="Variant.Flat" 
+                             MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
+            </Template>
+        </RadzenDataGridColumn>
+        
+        <RadzenDataGridColumn Property="@nameof(Account.Name)" Title="Account Name" Frozen="true" Width="220px" />
+        
+        <RadzenDataGridColumn Property="@nameof(Account.Type)" Title="Account Type" Width="150px" />
+        
+        <RadzenDataGridColumn Property="@nameof(Account.CurrentBalance)" Title="Current Balance" Width="160px">
+            <Template Context="account">
+                <span style="color: @(account.CurrentBalance >= 0 ? "green" : "red")">
+                    @account.CurrentBalance.ToString("C")
+                </span>
+            </Template>
+        </RadzenDataGridColumn>
+        
+        <RadzenDataGridColumn Property="@nameof(Account.MonthlyIncome)" Title="Monthly Income" Width="160px">
+            <Template Context="account">
+                @account.MonthlyIncome.ToString("C")
+            </Template>
+        </RadzenDataGridColumn>
+        
+        <RadzenDataGridColumn Property="@nameof(Account.Institution)" Title="Institution" Width="200px" />
+        
+        <RadzenDataGridColumn Property="@nameof(Account.IsActive)" Title="Active" Width="100px">
+            <Template Context="account">
+                @if (account.IsActive)
+                {
+                    <RadzenIcon Icon="check_circle" Style="color: green;" />
+                }
+                else
+                {
+                    <RadzenIcon Icon="cancel" Style="color: red;" />
+                }
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+<!-- Summary Card -->
+@if (Accounts?.Any() == true)
+{
+    <RadzenCard class="mt-3">
+        <RadzenText TextStyle="TextStyle.H6">Account Summary</RadzenText>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" class="mt-2">
+            <RadzenStack Orientation="Orientation.Vertical">
+                <RadzenText TextStyle="TextStyle.Body2">Total Balance</RadzenText>
+                <RadzenText TextStyle="TextStyle.H6" Style="@($"color: {(GetTotalBalance() >= 0 ? "green" : "red")}")">
+                    @GetTotalBalance().ToString("C")
+                </RadzenText>
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Vertical">
+                <RadzenText TextStyle="TextStyle.Body2">Total Monthly Income</RadzenText>
+                <RadzenText TextStyle="TextStyle.H6" Style="color: green">
+                    @GetTotalMonthlyIncome().ToString("C")
+                </RadzenText>
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Vertical">
+                <RadzenText TextStyle="TextStyle.Body2">Active Accounts</RadzenText>
+                <RadzenText TextStyle="TextStyle.H6">
+                    @Accounts.Count(a => a.IsActive) of @Accounts.Count
+                </RadzenText>
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenCard>
+}
+
+@code {
+    protected List<Account> Accounts { get; set; } = new List<Account>();
+    protected bool IsLoading { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Accounts = await GetAccounts();
+    }
+
+    protected async Task<List<Account>> GetAccounts()
+    {
+        IsLoading = true;
+        var accountList = await BillFlowContext.Accounts.ToListAsync();
+        IsLoading = false;
+        return accountList;
+    }
+
+    protected async Task CreateAccount()
+    {
+        bool createdNewAccount = await DialogService.OpenAsync<CreateEditAccount>("Create Account") ?? false;
+
+        if (createdNewAccount)
+        {
+            Accounts = await GetAccounts();
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Account created successfully");
+        }
+    }
+
+    protected async Task EditAccount(Account account)
+    {
+        Dictionary<string, object> parameters = new Dictionary<string, object>() { { "Account", account} };
+        bool updated = await DialogService.OpenAsync<CreateEditAccount>("Edit Account", parameters) ?? false;
+        
+        if (updated)
+        {
+            Accounts = await GetAccounts();
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Account updated successfully");
+        }
+    }
+
+    protected async Task DeleteAccount(Account account)
+    {
+        var dialogOptions = new DialogOptions()
+        {
+            CloseDialogOnEsc = false,
+            ShowClose = false,
+        };
+
+        var accountDesc = $"{account.Name} ({account.Type})";
+        Dictionary<string, object> parameters = new Dictionary<string, object>() 
+        { 
+            { "BodyText", $"Please confirm deletion of account: {accountDesc}\n\nWarning: This will also delete all associated transactions and payment history." } 
+        };
+
+        bool isConfirmedToBeDeleted = await DialogService.OpenAsync<ConfirmDialog>("Confirm Account Deletion", parameters, dialogOptions) ?? false;
+
+        if (isConfirmedToBeDeleted)
+        {
+            try
+            {
+                BillFlowContext.Remove(account);
+                await BillFlowContext.SaveChangesAsync();
+                
+                Accounts = await GetAccounts();
+                NotificationService.Notify(NotificationSeverity.Success, "Success", "Account deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to delete account: {ex.Message}");
+            }
+        }
+    }
+
+    private decimal GetTotalBalance()
+    {
+        return Accounts?.Where(a => a.IsActive).Sum(a => a.CurrentBalance) ?? 0;
+    }
+
+    private decimal GetTotalMonthlyIncome()
+    {
+        return Accounts?.Where(a => a.IsActive).Sum(a => a.MonthlyIncome) ?? 0;
+    }
+}

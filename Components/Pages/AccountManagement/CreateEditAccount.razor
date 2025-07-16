@@ -1,0 +1,117 @@
+@page "/create-edit-account"
+@inject BillFlowContext BillFlowContext
+@rendermode InteractiveServer
+@using Radzen
+@using Radzen.Blazor
+@using BillFlow.Models
+@inject DialogService DialogService
+
+<RadzenStack Orientation="Orientation.Vertical" Gap="1rem">
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenLabel Text="Account Name" />
+            <RadzenTextBox @bind-Value="@Account.Name" Name="Name" Style="width:100%" Placeholder="e.g., Main Checking" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="6">
+            <RadzenLabel Text="Account Type" />
+            <RadzenDropDown @bind-Value="@Account.Type" Data="@AccountTypes" Style="width:100%" Name="Type" />
+        </RadzenColumn>
+        <RadzenColumn Size="6">
+            <RadzenLabel Text="Institution" />
+            <RadzenTextBox @bind-Value="@Account.Institution" Name="Institution" Style="width:100%" Placeholder="e.g., Bank of America" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="6">
+            <RadzenLabel Text="Current Balance" />
+            <RadzenNumeric @bind-Value="@Account.CurrentBalance" Name="CurrentBalance" Style="width:100%" 
+                          Format="C" ShowUpDown="false" />
+        </RadzenColumn>
+        <RadzenColumn Size="6">
+            <RadzenLabel Text="Monthly Income (Auto-deposit)" />
+            <RadzenNumeric @bind-Value="@Account.MonthlyIncome" Name="MonthlyIncome" Style="width:100%" 
+                          Format="C" ShowUpDown="false" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenLabel Text="Account Number (Optional)" />
+            <RadzenTextBox @bind-Value="@Account.AccountNumber" Name="AccountNumber" Style="width:100%" 
+                          Placeholder="Last 4 digits or masked number" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="12">
+            <RadzenCheckBox @bind-Value="@Account.IsActive" Name="IsActive" />
+            <RadzenLabel Text="Account is Active" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenStack Style="margin-top:1rem" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
+        <RadzenButton Text="Save" Click="Save" Disabled="@(IsSaving || !ValidateAccount())" 
+                     ButtonStyle="ButtonStyle.Info" />
+        <RadzenButton Text="Cancel" Click="() => DialogService.Close(false)" 
+                     ButtonStyle="ButtonStyle.Light" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public Account? Account { get; set; } = new Account();
+    
+    protected bool IsSaving = false;
+    protected List<string> AccountTypes = new List<string> { "Checking", "Savings", "Credit" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure we have a valid account instance
+        if (Account == null)
+        {
+            Account = new Account();
+        }
+    }
+
+    protected async Task Save()
+    {
+        IsSaving = true;
+        await Task.Yield();
+
+        try
+        {
+            if (Account.ID == 0)
+            {
+                BillFlowContext.Accounts.Add(Account);
+            }
+            else
+            {
+                BillFlowContext.Accounts.Update(Account);
+            }
+
+            await BillFlowContext.SaveChangesAsync();
+            DialogService.Close(true);
+        }
+        catch (Exception ex)
+        {
+            // Handle error (in a real app, you'd want proper error handling)
+            throw;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    protected bool ValidateAccount()
+    {
+        return Account != null && 
+               !string.IsNullOrWhiteSpace(Account.Name) && 
+               !string.IsNullOrWhiteSpace(Account.Type) &&
+               Account.CurrentBalance >= 0 &&
+               Account.MonthlyIncome >= 0;
+    }
+}

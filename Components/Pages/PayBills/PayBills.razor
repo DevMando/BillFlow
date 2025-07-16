@@ -1,0 +1,442 @@
+@page "/pay-bills"
+@using BillFlow.Models
+@using BillFlow.Services
+@using Radzen
+@using Radzen.Blazor
+@rendermode InteractiveServer
+@inject BillGenerationService BillGenerationService
+@inject PaymentProcessingService PaymentProcessingService
+@inject NotificationService NotificationService
+@inject BillFlowToolTipService BillFlowToolTipService
+
+<PageTitle>Pay My Bills</PageTitle>
+
+<RadzenStack Orientation="Orientation.Vertical" Gap="1rem">
+    
+    <!-- Month Navigation -->
+    <RadzenCard>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenButton Icon="chevron_left" Click="() => NavigateMonth(-1)" Text="Previous Month" ButtonStyle="ButtonStyle.Light" />
+            <RadzenText TextStyle="TextStyle.H4">@GetDisplayMonth()</RadzenText>
+            <RadzenButton Icon="chevron_right" Click="() => NavigateMonth(1)" Text="Next Month" ButtonStyle="ButtonStyle.Light" />
+        </RadzenStack>
+    </RadzenCard>
+
+    <!-- Account Balances -->
+    <RadzenCard>
+        <RadzenText TextStyle="TextStyle.H5" class="mb-3">Account Balances (Editable)</RadzenText>
+        @if (Accounts?.Any() == true)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" class="mb-3">
+                @foreach (var account in Accounts)
+                {
+                    <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="0.5rem">
+                        <RadzenText TextStyle="TextStyle.Body1"><strong>@account.Name</strong></RadzenText>
+                        <RadzenNumeric Value="@account.CurrentBalance" 
+                                     Format="C" 
+                                     ShowUpDown="false" 
+                                     Style="width: 120px;"
+                                     ValueChanged="@((decimal val) => { account.CurrentBalance = val; RecalculateBalances(); })" />
+                    </RadzenStack>
+                }
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenText TextStyle="TextStyle.Body1"><strong>Total Available: @TotalBalance.ToString("C")</strong></RadzenText>
+                <RadzenText TextStyle="TextStyle.Body1"><strong>-</strong></RadzenText>
+                <RadzenText TextStyle="TextStyle.Body1"><strong>Total Paid This Month: @GetTotalPaidThisMonth().ToString("C")</strong></RadzenText>
+                <RadzenText TextStyle="TextStyle.Body1"><strong>=</strong></RadzenText>
+                <RadzenText TextStyle="TextStyle.Body1"><strong>Remaining: @GetRemainingAfterBills().ToString("C")</strong></RadzenText>
+            </RadzenStack>
+        
+        }
+        else
+        {
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: orange;">No accounts configured. Please add accounts first.</RadzenText>
+        }
+    </RadzenCard>
+
+    <!-- Bills Due This Month -->
+    <RadzenCard>
+        <RadzenText TextStyle="TextStyle.H5" class="mb-3">Bills Due This Month</RadzenText>
+        
+        <!-- Debug Information -->
+        @if (!IsLoading)
+        {
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: blue; margin-bottom: 1rem;">
+                Debug: Year=@CurrentYear, Month=@CurrentMonth, BillInstances Count=@(BillInstances?.Count ?? 0), LoadError=@LoadError
+            </RadzenText>
+            @if (!string.IsNullOrEmpty(DebugInfo))
+            {
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: purple; margin-bottom: 1rem;">
+                    @DebugInfo
+                </RadzenText>
+            }
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" class="mb-3">
+                <RadzenButton Text="Debug: Reload Data" Click="LoadData" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" />
+                <RadzenButton Text="Debug: Force Generate Bills" Click="ForceGenerateBills" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" />
+            </RadzenStack>
+        }
+        
+        @if (IsLoading)
+        {
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        }
+        else if (BillInstances?.Any() == true)
+        {
+            <RadzenDataGrid AllowFiltering="false" AllowColumnResize="true" AllowSorting="true" 
+                           Data="@BillInstances" TItem="BillInstance" GridLines="DataGridGridLines.Both">
+                <Columns>
+                    <RadzenDataGridColumn TItem="BillInstance" Width="60px" Title="Status" Sortable="false">
+                        <Template Context="billInstance">
+                            @if (billInstance.IsPaid)
+                            {
+                                <RadzenIcon Icon="check_circle" Style="color: green;" />
+                            }
+                            else
+                            {
+                                <RadzenIcon Icon="radio_button_unchecked" Style="color: orange;" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="BillInstance" Property="Bill.Name" Title="Bill Name" Width="200px" />
+                    
+                    <RadzenDataGridColumn TItem="BillInstance" Property="AmountDue" Title="Amount Due" Width="120px">
+                        <Template Context="billInstance">
+                            @billInstance.AmountDue.ToString("C")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="BillInstance" Property="DueDate" Title="Due Date" Width="150px">
+                        <Template Context="billInstance">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <span>@billInstance.DueDate.ToString("MMM dd")</span>
+                                @if (IsLate(billInstance))
+                                {
+                                    <RadzenBadge Text="LATE" BadgeStyle="BadgeStyle.Danger" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="BillInstance" Property="Bill.BillTag.Name" Title="Category" Width="120px">
+                        <Template Context="billInstance">
+                            @(billInstance.Bill.BillTag?.Name ?? "None")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="BillInstance" Width="300px" Title="Action" Sortable="false">
+                        <Template Context="billInstance">
+                            @if (billInstance.IsPaid)
+                            {
+                                <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="color: green;">
+                                        ✓ PAID - @GetPaymentAmount(billInstance)
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: gray;">
+                                        @GetPaymentDate(billInstance)
+                                    </RadzenText>
+                                    <RadzenButton Text="Unpay" Click="() => UnpayBill(billInstance)" 
+                                                 ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.ExtraSmall" 
+                                                 Icon="undo" />
+                                </RadzenStack>
+                            }
+                            else if (Accounts?.Any() == true)
+                            {
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenDropDown Value="@GetSelectedAccountId(billInstance)" 
+                                                   Data="@Accounts" 
+                                                   TextProperty="Name" 
+                                                   ValueProperty="ID"
+                                                   Style="width: 100px;" 
+                                                   Placeholder="Account"
+                                                   ValueChanged="@((int accountId) => SetSelectedAccount(billInstance, accountId))" />
+                                    <RadzenButton Text="Pay" Click="() => PayBillFromAccount(billInstance)" 
+                                                 ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" 
+                                                 Disabled="@(!HasSelectedAccount(billInstance))" />
+                                </RadzenStack>
+                            }
+                            else
+                            {
+                                <RadzenText TextStyle="TextStyle.Body2" Style="color: orange;">No accounts available</RadzenText>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+            
+            <!-- Summary -->
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" class="mt-3">
+              
+                <RadzenText TextStyle="TextStyle.Body2">
+                    @GetPaidCount() of @GetTotalBillsThisMonth() bills paid
+                </RadzenText>
+            </RadzenStack>
+        }
+        else
+        {
+            <RadzenText TextStyle="TextStyle.Body2">No bills due this month.</RadzenText>
+        }
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    private List<BillInstance>? BillInstances;
+    private List<Account>? Accounts;
+    private bool IsLoading = true;
+    private int CurrentYear = DateTime.Now.Year;
+    private int CurrentMonth = DateTime.Now.Month;
+    private decimal TotalBalance;
+    private string LoadError = "None";
+    private string DebugInfo = "";
+    private Dictionary<int, int> SelectedAccountIds = new Dictionary<int, int>(); // BillInstanceId -> AccountId
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        LoadError = "None";
+        
+        try
+        {
+            // Load accounts
+            try
+            {
+                Accounts = await PaymentProcessingService.GetAccountsWithBalances();
+                TotalBalance = Accounts?.Sum(a => a.CurrentBalance) ?? 0;
+                LoadError = $"Accounts loaded: {Accounts?.Count ?? 0}";
+            }
+            catch (Exception ex)
+            {
+                LoadError = $"Account loading failed: {ex.Message}";
+                NotificationService.Notify(NotificationSeverity.Error, "Account Load Error", ex.Message);
+                return;
+            }
+            
+            // Load bill instances for current month
+            try
+            {
+                BillInstances = await BillGenerationService.GetBillInstancesForMonth(CurrentYear, CurrentMonth);
+                DebugInfo = await BillGenerationService.GetDebugInfo(CurrentYear, CurrentMonth);
+                LoadError = $"Success - Found {BillInstances?.Count ?? 0} bill instances";
+            }
+            catch (Exception ex)
+            {
+                LoadError = $"Bill instance loading failed: {ex.Message}";
+                NotificationService.Notify(NotificationSeverity.Error, "Bill Load Error", ex.Message);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            LoadError = $"General Exception: {ex.Message} | Stack: {ex.StackTrace}";
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load data: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task NavigateMonth(int monthOffset)
+    {
+        var newDate = new DateTime(CurrentYear, CurrentMonth, 1).AddMonths(monthOffset);
+        CurrentYear = newDate.Year;
+        CurrentMonth = newDate.Month;
+        
+        await LoadData();
+    }
+
+    private string GetDisplayMonth()
+    {
+        return new DateTime(CurrentYear, CurrentMonth, 1).ToString("MMMM yyyy");
+    }
+
+    private async Task OpenPaymentDialog(BillInstance billInstance)
+    {
+        // For now, we'll create a simple payment with the full amount from the first available account
+        var firstAccount = Accounts?.FirstOrDefault();
+        if (firstAccount == null)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Warning", "No accounts available for payment");
+            return;
+        }
+
+        if (firstAccount.CurrentBalance < billInstance.AmountDue)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Insufficient Funds", 
+                $"Account {firstAccount.Name} has insufficient funds. Balance: {firstAccount.CurrentBalance:C}, Required: {billInstance.AmountDue:C}");
+            return;
+        }
+
+        try
+        {
+            await PaymentProcessingService.ProcessBillPayment(
+                billInstance.ID, 
+                billInstance.AmountDue, 
+                firstAccount.ID);
+
+            NotificationService.Notify(NotificationSeverity.Success, "Payment Successful", 
+                $"Paid {billInstance.AmountDue:C} for {billInstance.Bill.Name}");
+
+            await LoadData(); // Refresh data
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Payment Failed", ex.Message);
+        }
+    }
+
+    private decimal GetRemainingTotal()
+    {
+        return BillInstances?.Where(bi => !bi.IsPaid && bi.Year == CurrentYear && bi.Month == CurrentMonth).Sum(bi => bi.AmountDue) ?? 0;
+    }
+
+
+    private int GetPaidCount()
+    {
+        return BillInstances?.Count(bi => bi.IsPaid && bi.Year == CurrentYear && bi.Month == CurrentMonth) ?? 0;
+    }
+
+    private int GetTotalBillsThisMonth()
+    {
+        return BillInstances?.Count(bi => bi.Year == CurrentYear && bi.Month == CurrentMonth) ?? 0;
+    }
+
+    private string GetPaymentAmount(BillInstance billInstance)
+    {
+        var payment = billInstance.Payments?.FirstOrDefault();
+        if (payment != null)
+        {
+            return payment.TotalAmount.ToString("C");
+        }
+        return billInstance.AmountDue.ToString("C");
+    }
+
+    private string GetPaymentDate(BillInstance billInstance)
+    {
+        var payment = billInstance.Payments?.FirstOrDefault();
+        if (payment != null)
+        {
+            return $"Paid on {payment.Date.ToString("MMM dd, yyyy")}";
+        }
+        return "";
+    }
+
+    private async Task ForceGenerateBills()
+    {
+        try
+        {
+            var generated = await BillGenerationService.ForceGenerateAllBillsForMonth(CurrentYear, CurrentMonth);
+            NotificationService.Notify(NotificationSeverity.Info, "Debug", $"Forced bill generation completed. Generated {generated.Count} new instances.");
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Debug Error", $"Force generation failed: {ex.Message}");
+        }
+    }
+
+    private void RecalculateBalances()
+    {
+        TotalBalance = Accounts?.Sum(a => a.CurrentBalance) ?? 0;
+        StateHasChanged();
+    }
+
+    private decimal GetTotalPaidThisMonth()
+    {
+        return BillInstances?.Where(bi => bi.IsPaid && bi.Year == CurrentYear && bi.Month == CurrentMonth).Sum(bi => bi.AmountDue) ?? 0;
+    }
+
+    private decimal GetRemainingAfterBills()
+    {
+        var totalPaidBills = GetTotalPaidThisMonth();
+        return TotalBalance - totalPaidBills;
+    }
+
+    private bool IsLate(BillInstance billInstance)
+    {
+        return !billInstance.IsPaid && billInstance.DueDate.Date < DateTime.Now.Date;
+    }
+
+    private int GetSelectedAccountId(BillInstance billInstance)
+    {
+        return SelectedAccountIds.TryGetValue(billInstance.ID, out var accountId) ? accountId : 0;
+    }
+
+    private void SetSelectedAccount(BillInstance billInstance, int accountId)
+    {
+        SelectedAccountIds[billInstance.ID] = accountId;
+    }
+
+    private bool HasSelectedAccount(BillInstance billInstance)
+    {
+        return SelectedAccountIds.ContainsKey(billInstance.ID) && SelectedAccountIds[billInstance.ID] > 0;
+    }
+
+    private async Task PayBillFromAccount(BillInstance billInstance)
+    {
+        if (!HasSelectedAccount(billInstance))
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Warning", "Please select an account to pay from");
+            return;
+        }
+
+        var selectedAccountId = SelectedAccountIds[billInstance.ID];
+        var selectedAccount = Accounts?.FirstOrDefault(a => a.ID == selectedAccountId);
+        
+        if (selectedAccount == null)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Warning", "Selected account not found");
+            return;
+        }
+
+        if (selectedAccount.CurrentBalance < billInstance.AmountDue)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Insufficient Funds", 
+                $"Account {selectedAccount.Name} has insufficient funds. Balance: {selectedAccount.CurrentBalance:C}, Required: {billInstance.AmountDue:C}");
+            return;
+        }
+
+        try
+        {
+            await PaymentProcessingService.ProcessBillPayment(
+                billInstance.ID, 
+                billInstance.AmountDue, 
+                selectedAccountId);
+
+            // Remove the selected account for this bill
+            SelectedAccountIds.Remove(billInstance.ID);
+
+            NotificationService.Notify(NotificationSeverity.Success, "Payment Successful", 
+                $"Paid {billInstance.AmountDue:C} for {billInstance.Bill.Name} from {selectedAccount.Name}");
+
+            await LoadData(); // Refresh data from database
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Payment Failed", ex.Message);
+        }
+    }
+
+    private async Task UnpayBill(BillInstance billInstance)
+    {
+        try
+        {
+            await PaymentProcessingService.UnpayBill(billInstance.ID);
+
+            NotificationService.Notify(NotificationSeverity.Success, "Bill Unpaid", 
+                $"Successfully unpaid {billInstance.Bill.Name} - funds returned to account(s)");
+
+            await LoadData(); // Refresh data from database
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Unpay Failed", ex.Message);
+        }
+    }
+}

@@ -26,7 +26,7 @@
 AllowSorting="true" PageSize="1000" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
 Data="@Bills" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" IsLoading="IsLoading">
     <Columns>
-        <RadzenDataGridColumn>
+        <RadzenDataGridColumn Width="106px" MaxWidth="106px">
             <Template Context="bill">
                 <RadzenButton Click="() => EditBill(bill)" Icon="edit" Style="border-radius:50%" ButtonStyle="ButtonStyle.Info" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Edit"))" />
                 <RadzenButton Click="() => DeleteBill(bill)" Icon="cancel" Style="border-radius:50%" ButtonStyle="ButtonStyle.Danger" Shade="Shade.Lighter" Variant="Variant.Flat" MouseEnter="@((args) => BillFlowToolTipService.ShowTooltip(args, "Delete"))" />
